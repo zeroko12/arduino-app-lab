@@ -65,7 +65,7 @@ jobs:
 
       - name: Install Wails CLI
         run: |
-          go install github.com/wailsapp/wails/v2/cmd/wails@v2.9.2
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
 
       - name: Build Frontend
         run: |
@@ -74,7 +74,7 @@ jobs:
       - name: Build Wails App (Windows)
         working-directory: standalone-apps/app-lab-desktop
         run: |
-          wails build -s -platform windows/amd64
+          wails build -s -skipbindings -m -platform windows/amd64
 
       - name: Package Output Artifact (Windows)
         shell: bash
@@ -150,7 +150,7 @@ jobs:
 
       - name: Install Wails CLI
         run: |
-          go install github.com/wailsapp/wails/v2/cmd/wails@v2.9.2
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
 
       - name: Build Frontend
         run: |
@@ -159,7 +159,7 @@ jobs:
       - name: Build Wails App (macOS arm64)
         working-directory: standalone-apps/app-lab-desktop
         run: |
-          wails build -s -platform darwin/arm64
+          wails build -s -skipbindings -m -platform darwin/arm64
 
       - name: Package Output Artifact (macOS)
         shell: bash
@@ -229,7 +229,7 @@ jobs:
 
       - name: Install Wails CLI
         run: |
-          go install github.com/wailsapp/wails/v2/cmd/wails@v2.9.2
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
 
       - name: Build Frontend
         run: |
@@ -238,7 +238,7 @@ jobs:
       - name: Build Wails App (macOS amd64)
         working-directory: standalone-apps/app-lab-desktop
         run: |
-          wails build -s -platform darwin/amd64
+          wails build -s -skipbindings -m -platform darwin/amd64
 
       - name: Package Output Artifact (macOS)
         shell: bash
@@ -309,7 +309,7 @@ jobs:
 
       - name: Install Wails CLI
         run: |
-          go install github.com/wailsapp/wails/v2/cmd/wails@v2.9.2
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
 
       - name: Build Frontend
         run: |
@@ -318,7 +318,7 @@ jobs:
       - name: Build Wails App (Linux)
         working-directory: standalone-apps/app-lab-desktop
         run: |
-          wails build -s -platform linux/amd64 -tags webkit2_41
+          wails build -s -skipbindings -m -platform linux/amd64 -tags webkit2_41
 
       - name: Package Output Artifact (Linux)
         shell: bash
