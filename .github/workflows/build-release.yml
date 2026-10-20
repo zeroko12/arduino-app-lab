@@ -12,6 +12,10 @@ on:
         description: 'Release Tag (e.g. v0.10.1)'
         required: false
         default: 'v0.10.1'
+      platform:
+        description: 'Target Platform (windows, all, macos, linux)'
+        required: false
+        default: 'windows'
 
 permissions:
   contents: write
@@ -20,6 +24,7 @@ jobs:
   build:
     name: Build ${{ matrix.platform_name }} (${{ matrix.target_arch }})
     runs-on: ${{ matrix.os }}
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.platform_name || (github.event.inputs.platform == 'windows' && matrix.platform_name == 'Windows') }}
     strategy:
       fail-fast: false
       matrix:
@@ -65,7 +70,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version-file: 'standalone-apps/app-lab-desktop/go.mod'
           cache: false
 
       - name: Set up Node.js
@@ -87,7 +92,7 @@ jobs:
       - name: Install Windows build tools
         if: runner.os == 'Windows'
         run: |
-          choco install wget jq nsis -y
+          choco install wget jq nsis 7zip unzip -y --no-progress
 
       - name: Set up Yarn & Environment
         shell: bash
@@ -97,10 +102,11 @@ jobs:
           yarn set version 3.8.7
           yarn install
 
-      - name: Download Board Bundled Resources
+      - name: Download Bundled Resources
         shell: bash
         run: |
-          bash standalone-apps/app-lab-desktop/internal/board/download_resources.sh ${{ matrix.target_arch }}
+          chmod +x standalone-apps/app-lab-desktop/frontend/scripts/download.sh
+          bash standalone-apps/app-lab-desktop/frontend/scripts/download.sh ${{ matrix.target_arch }}
 
       - name: Install Wails CLI
         run: |
@@ -114,13 +120,13 @@ jobs:
         if: runner.os == 'Linux'
         working-directory: standalone-apps/app-lab-desktop
         run: |
-          wails build -platform ${{ matrix.wails_platform }} -tags webkit2_41
+          wails build -s -platform ${{ matrix.wails_platform }} -tags webkit2_41
 
       - name: Build Wails App (macOS & Windows)
         if: runner.os != 'Linux'
         working-directory: standalone-apps/app-lab-desktop
         run: |
-          wails build -platform ${{ matrix.wails_platform }}
+          wails build -s -platform ${{ matrix.wails_platform }}
 
       - name: Package Output Artifact (Windows)
         if: runner.os == 'Windows'
