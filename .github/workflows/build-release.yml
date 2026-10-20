@@ -2,6 +2,8 @@ name: Build and Release Multi-Platform Packages
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -126,7 +128,14 @@ jobs:
         run: |
           mkdir -p dist
           cp standalone-apps/app-lab-desktop/build/bin/ArduinoAppLab.exe dist/ArduinoAppLab-Windows-x64.exe
-          cd dist && zip ArduinoAppLab-Windows-x64.zip ArduinoAppLab-Windows-x64.exe
+          cd dist
+          if command -v 7z >/dev/null 2>&1; then
+            7z a ArduinoAppLab-Windows-x64.zip ArduinoAppLab-Windows-x64.exe
+          elif command -v zip >/dev/null 2>&1; then
+            zip ArduinoAppLab-Windows-x64.zip ArduinoAppLab-Windows-x64.exe
+          else
+            powershell.exe -Command "Compress-Archive -Path ArduinoAppLab-Windows-x64.exe -DestinationPath ArduinoAppLab-Windows-x64.zip"
+          fi
 
       - name: Package Output Artifact (Linux)
         if: runner.os == 'Linux'
@@ -152,10 +161,11 @@ jobs:
           path: dist/*
 
       - name: Release to GitHub
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          tag_name: ${{ github.event.inputs.release_tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.10.1' }}
           files: dist/*
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
