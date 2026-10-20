@@ -44,14 +44,14 @@ while IFS= read -r component; do
         continue
     fi
 
-    pinned="$(jq -r --arg k "$component" '.[$k] // ""' "$VERSIONS_FILE")"
+    pinned="$(jq -r --arg k "$component" '.[$k] // ""' "$VERSIONS_FILE" | tr -d '\r')"
     if [ -z "$pinned" ]; then
         problems+=("${component}: in licenses.json but not pinned in versions.json — stale entry?")
         continue
     fi
 
     # download_licenses.sh writes "Component:  <name> <version>".
-    recorded="$(sed -n 's/^Component:[[:space:]]*'"${component}"'[[:space:]]\{1,\}\(.*\)$/\1/p' "$path" | head -1)"
+    recorded="$(sed -n 's/^Component:[[:space:]]*'"${component}"'[[:space:]]\{1,\}\(.*\)$/\1/p' "$path" | head -1 | tr -d '\r')"
     if [ -z "$recorded" ]; then
         problems+=("${component}: ${text_file} has no 'Component: ${component} <version>' header — regenerate it with download_licenses.sh")
     elif [ "$recorded" != "$pinned" ]; then

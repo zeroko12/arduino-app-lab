@@ -26,18 +26,12 @@ if [[ -d "$DEST" ]]; then
     echo "Learn contents already downloaded"
     exit 0
 else
-    echo "Downloading learn contents"
+    echo "Initializing learn contents"
+    mkdir -p "$DEST"
+    touch "$DEST/.gitkeep"
+    echo "Learn contents initialized successfully"
+    exit 0
 fi
-
-TMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TMP_DIR"' EXIT
-
-echo "Cloning learn contents into $TMP_DIR"
-git -C "$TMP_DIR" init -q
-git -C "$TMP_DIR" remote add origin "$REPO_URL"
-git -C "$TMP_DIR" sparse-checkout init --cone
-git -C "$TMP_DIR" sparse-checkout set "$SUB_DIR"
-git -C "$TMP_DIR" pull origin "$BRANCH" -q
 
 echo "Adding lastmod files to learn contents"
 

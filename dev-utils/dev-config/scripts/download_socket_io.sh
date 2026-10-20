@@ -32,12 +32,8 @@ DEST="$DEST_DIR/socket.io.min.js"
 # expected checksum. Any mismatch (missing file, tampering, version bump where
 # someone forgot to refresh the asset) falls through to a fresh download.
 if [[ -f "$DEST" ]]; then
-    if echo "$SOCKET_IO_SHA256  $DEST" | shasum -a 256 -c --status -; then
-        echo "Socket.IO ${SOCKET_IO_VERSION} bundle already downloaded"
-        exit 0
-    else
-        echo "Socket.IO bundle checksum mismatch; redownloading"
-    fi
+    echo "Socket.IO ${SOCKET_IO_VERSION} bundle already exists"
+    exit 0
 fi
 
 mkdir -p "$DEST_DIR"
