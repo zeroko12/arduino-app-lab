@@ -258,3 +258,8 @@ export function WatchApp(arg1:string):Promise<void>;
 export function WatchAppsDir(arg1:string):Promise<void>;
 
 export function WriteFileContent(arg1:string,arg2:string,arg3:boolean):Promise<void>;
+
+export function AgentGetOpenAIConfig(arg1:string):Promise<{baseUrl:string,apiKey:string,model:string}>;
+
+export function AgentSaveOpenAIConfig(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+

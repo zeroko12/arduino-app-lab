@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   AgentDescriptor,
@@ -28,6 +28,10 @@ export interface AgentAuthFlowState {
   setAuthTab: (tab: AuthTab) => void;
   apiKey: string;
   setApiKey: (value: string) => void;
+  baseUrl: string;
+  setBaseUrl: (value: string) => void;
+  model: string;
+  setModel: (value: string) => void;
   // True once Verify ran against a wrongly-formatted key (cleared on edit).
   apiKeyError: boolean;
   signingIn: boolean;
@@ -73,6 +77,45 @@ export const useAgentAuthFlow = ({
   });
   const [apiKey, setApiKeyValue] = useState('');
   const [apiKeyError, setApiKeyError] = useState(false);
+  const [baseUrl, setBaseUrl] = useState(() => {
+    if (agent?.id === 'minimax') return 'https://api.minimax.chat/v1';
+    if (agent?.id === 'openai') return 'https://api.openai.com/v1';
+    if (agent?.id === 'opencode') return 'http://localhost:11434/v1';
+    return '';
+  });
+  const [model, setModel] = useState(() => {
+    if (agent?.id === 'minimax') return 'minimax-m3';
+    if (agent?.id === 'openai') return 'gpt-4o';
+    if (agent?.id === 'opencode') return 'qwen2.5-coder';
+    return '';
+  });
+
+  useEffect(() => {
+    if (
+      agent?.id === 'minimax' ||
+      agent?.id === 'openai' ||
+      agent?.id === 'opencode'
+    ) {
+      setAuthTab('apikey');
+      if (agent.id === 'minimax') {
+        setBaseUrl((b) => b || 'https://api.minimax.chat/v1');
+        setModel((m) => m || 'minimax-m3');
+      } else if (agent.id === 'openai') {
+        setBaseUrl((b) => b || 'https://api.openai.com/v1');
+        setModel((m) => m || 'gpt-4o');
+      }
+      const win = window as any;
+      if (win.go?.app?.App?.AgentGetOpenAIConfig) {
+        win.go.app.App.AgentGetOpenAIConfig(agent.id)
+          .then((cfg: { baseUrl?: string; model?: string; apiKey?: string }) => {
+            if (cfg?.baseUrl) setBaseUrl(cfg.baseUrl);
+            if (cfg?.model) setModel(cfg.model);
+            if (cfg?.apiKey) setApiKeyValue(cfg.apiKey);
+          })
+          .catch(() => {});
+      }
+    }
+  }, [agent?.id]);
   const [signingIn, setSigningIn] = useState(false);
   const [authUrl, setAuthUrl] = useState<string>();
   const [verifying, setVerifying] = useState(false);
@@ -215,16 +258,35 @@ export const useAgentAuthFlow = ({
       return;
     }
     const key = apiKey.trim();
-    if (!key.startsWith(agent.apiKeyPrefix)) {
+    const isOpenAI =
+      agent.id === 'minimax' ||
+      agent.id === 'openai' ||
+      agent.id === 'opencode';
+
+    if (!isOpenAI && agent.apiKeyPrefix && !key.startsWith(agent.apiKeyPrefix)) {
       setApiKeyError(true);
       return;
     }
     setVerifying(true);
     try {
-      const result = await authenticateApiKey(agent.id, key);
-      if (!result.ok) {
-        onError?.(result.error ?? '');
-        return;
+      if (isOpenAI) {
+        const win = window as any;
+        if (win.go?.app?.App?.AgentSaveOpenAIConfig) {
+          await win.go.app.App.AgentSaveOpenAIConfig(
+            agent.id,
+            baseUrl.trim(),
+            key,
+            model.trim(),
+          );
+        } else {
+          await authenticateApiKey(agent.id, key);
+        }
+      } else {
+        const result = await authenticateApiKey(agent.id, key);
+        if (!result.ok) {
+          onError?.(result.error ?? '');
+          return;
+        }
       }
       await onAuthenticated(agent.id);
     } catch (e) {
@@ -232,7 +294,7 @@ export const useAgentAuthFlow = ({
     } finally {
       setVerifying(false);
     }
-  }, [agent, apiKey, onAuthenticated, onError]);
+  }, [agent, apiKey, baseUrl, model, onAuthenticated, onError]);
 
   return {
     authTab,
@@ -240,6 +302,10 @@ export const useAgentAuthFlow = ({
     apiKey,
     setApiKey,
     apiKeyError,
+    baseUrl,
+    setBaseUrl,
+    model,
+    setModel,
     signingIn,
     authUrl,
     verifying,

@@ -166,6 +166,17 @@ export const AgentSettings: React.FC = () => {
                             {formatMessage(messages.settingsSetAsDefault)}
                           </button>
                         )}
+                        {(agent.id === 'minimax' ||
+                          agent.id === 'openai' ||
+                          agent.id === 'opencode') && (
+                          <Button
+                            variant={ButtonVariant.Secondary}
+                            size="small"
+                            onClick={(): void => connect(agent.id)}
+                          >
+                            修改配置
+                          </Button>
+                        )}
                         <Button
                           variant={ButtonVariant.Secondary}
                           appearance={ButtonAppearance.Destructive}

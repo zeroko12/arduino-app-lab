@@ -61,4 +61,7 @@ standalone-apps/app-lab-desktop/internal/emoji/assets/
 GEMINI.md
 
 tools/
+ArduinoAppLab.exe
+*.exe
+
 

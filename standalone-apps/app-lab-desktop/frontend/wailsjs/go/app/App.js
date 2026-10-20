@@ -489,3 +489,12 @@ export function WatchAppsDir(arg1) {
 export function WriteFileContent(arg1, arg2, arg3) {
   return window['go']['app']['App']['WriteFileContent'](arg1, arg2, arg3);
 }
+
+export function AgentGetOpenAIConfig(arg1) {
+  return window['go']['app']['App']['AgentGetOpenAIConfig'](arg1);
+}
+
+export function AgentSaveOpenAIConfig(arg1, arg2, arg3, arg4) {
+  return window['go']['app']['App']['AgentSaveOpenAIConfig'](arg1, arg2, arg3, arg4);
+}
+

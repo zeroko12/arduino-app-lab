@@ -254,7 +254,8 @@ func (c *openAIConn) Prompt(ctx context.Context, sid SessionID, text string) err
 		return err
 	}
 
-	url := fmt.Sprintf("%s/chat/completions", c.cfg.BaseURL)
+	baseURL := strings.TrimRight(c.cfg.BaseURL, "/")
+	url := fmt.Sprintf("%s/chat/completions", baseURL)
 	req, err := http.NewRequestWithContext(pctx, http.MethodPost, url, bytes.NewReader(payloadBytes))
 	if err != nil {
 		return err

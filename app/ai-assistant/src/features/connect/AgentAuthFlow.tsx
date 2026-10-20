@@ -29,60 +29,70 @@ export const AgentAuthFlow: React.FC<AgentAuthFlowProps> = ({
     apikey: null,
   });
 
+  const isOpenAI =
+    agent.id === 'minimax' ||
+    agent.id === 'openai' ||
+    agent.id === 'opencode';
+
   useLayoutEffect(() => {
+    if (isOpenAI) {
+      return;
+    }
     const active = tabRefs.current[flow.authTab];
     if (!active) {
       return;
     }
     setIndicator({ left: active.offsetLeft, width: active.offsetWidth });
-  }, [flow.authTab]);
+  }, [flow.authTab, isOpenAI]);
 
   return (
     <>
-      <div className={styles['tabs']} role="tablist">
-        <span
-          className={styles['tab-indicator']}
-          aria-hidden="true"
-          style={{
-            transform: `translateX(${indicator.left}px)`,
-            width: indicator.width,
-          }}
-        />
-        <button
-          type="button"
-          role="tab"
-          ref={(el): void => {
-            tabRefs.current.signin = el;
-          }}
-          aria-selected={flow.authTab === 'signin'}
-          className={clsx(
-            styles['tab'],
-            flow.authTab === 'signin' && styles['tab--active'],
-          )}
-          onClick={(): void => flow.setAuthTab('signin')}
-        >
-          {formatMessage(messages.tabSignIn)}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          ref={(el): void => {
-            tabRefs.current.apikey = el;
-          }}
-          aria-selected={flow.authTab === 'apikey'}
-          className={clsx(
-            styles['tab'],
-            flow.authTab === 'apikey' && styles['tab--active'],
-          )}
-          onClick={(): void => flow.setAuthTab('apikey')}
-        >
-          {formatMessage(messages.tabApiKey)}
-        </button>
-      </div>
+      {!isOpenAI && (
+        <div className={styles['tabs']} role="tablist">
+          <span
+            className={styles['tab-indicator']}
+            aria-hidden="true"
+            style={{
+              transform: `translateX(${indicator.left}px)`,
+              width: indicator.width,
+            }}
+          />
+          <button
+            type="button"
+            role="tab"
+            ref={(el): void => {
+              tabRefs.current.signin = el;
+            }}
+            aria-selected={flow.authTab === 'signin'}
+            className={clsx(
+              styles['tab'],
+              flow.authTab === 'signin' && styles['tab--active'],
+            )}
+            onClick={(): void => flow.setAuthTab('signin')}
+          >
+            {formatMessage(messages.tabSignIn)}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            ref={(el): void => {
+              tabRefs.current.apikey = el;
+            }}
+            aria-selected={flow.authTab === 'apikey'}
+            className={clsx(
+              styles['tab'],
+              flow.authTab === 'apikey' && styles['tab--active'],
+            )}
+            onClick={(): void => flow.setAuthTab('apikey')}
+          >
+            {formatMessage(messages.tabApiKey)}
+          </button>
+        </div>
+      )}
 
       <AgentAuth
         agent={agent}
-        authTab={flow.authTab}
+        authTab={isOpenAI ? 'apikey' : flow.authTab}
         signingIn={flow.signingIn}
         authUrl={flow.authUrl}
         onSignIn={flow.signIn}
@@ -96,6 +106,10 @@ export const AgentAuthFlow: React.FC<AgentAuthFlowProps> = ({
         apiKey={flow.apiKey}
         onApiKeyChange={flow.setApiKey}
         apiKeyError={flow.apiKeyError}
+        baseUrl={flow.baseUrl}
+        onBaseUrlChange={flow.setBaseUrl}
+        model={flow.model}
+        onModelChange={flow.setModel}
         verifying={flow.verifying}
         onVerify={flow.verifyApiKey}
       />

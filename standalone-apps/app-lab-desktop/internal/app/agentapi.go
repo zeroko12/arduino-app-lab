@@ -223,28 +223,20 @@ func (a *App) AgentStart(agentID string) error {
 
 	// Native in-process connector for MiniMax and OpenAI-compatible models
 	if id == airuntime.AgentMiniMax || id == airuntime.AgentOpenAI || id == airuntime.AgentOpenCode {
+		savedCfg := readOpenAIConfig(string(id))
 		key := a.agentAPIKey
 		if key == "" {
-			if stored, rerr := agentauth.ReadAPIKey(id); rerr == nil {
+			if savedCfg.APIKey != "" {
+				key = savedCfg.APIKey
+			} else if stored, rerr := agentauth.ReadAPIKey(id); rerr == nil {
 				key = stored
 			}
 		}
 
-		baseURL := os.Getenv("MINIMAX_BASE_URL")
-		model := os.Getenv("MINIMAX_MODEL")
-		if id == airuntime.AgentOpenAI || id == airuntime.AgentOpenCode {
-			if ob := os.Getenv("OPENAI_BASE_URL"); ob != "" {
-				baseURL = ob
-			}
-			if om := os.Getenv("OPENAI_MODEL"); om != "" {
-				model = om
-			}
-		}
-
 		openAICfg := agent.OpenAIConfig{
-			BaseURL: baseURL,
+			BaseURL: savedCfg.BaseURL,
 			APIKey:  key,
-			Model:   model,
+			Model:   savedCfg.Model,
 			AgentID: string(id),
 		}
 
@@ -561,6 +553,58 @@ func (a *App) AgentSubmitLoginToken(agentID, token string) error {
 	}
 }
 
+// AgentGetOpenAIConfig returns the configured BaseURL, Model, and APIKey for an OpenAI-compatible agent.
+func (a *App) AgentGetOpenAIConfig(agentID string) (OpenAIAgentConfig, error) {
+	if agentID == "" {
+		agentID = readDefaultAgent()
+		if agentID == "" {
+			agentID = string(airuntime.AgentMiniMax)
+		}
+	}
+	cfg := readOpenAIConfig(agentID)
+	return cfg, nil
+}
+
+// AgentSaveOpenAIConfig saves the BaseURL, APIKey, and Model, persists them, and establishes authentication.
+func (a *App) AgentSaveOpenAIConfig(agentID, baseURL, apiKey, model string) error {
+	if agentID == "" {
+		agentID = string(airuntime.AgentMiniMax)
+	}
+	id, err := airuntime.ParseAgent(agentID)
+	if err != nil {
+		return err
+	}
+	baseURL = strings.TrimSpace(baseURL)
+	apiKey = strings.TrimSpace(apiKey)
+	model = strings.TrimSpace(model)
+
+	cfg := readOpenAIConfig(string(id))
+	if baseURL != "" {
+		cfg.BaseURL = baseURL
+	}
+	if model != "" {
+		cfg.Model = model
+	}
+	if apiKey != "" {
+		cfg.APIKey = apiKey
+	}
+
+	if err := writeOpenAIConfig(string(id), cfg); err != nil {
+		return err
+	}
+
+	if cfg.APIKey != "" {
+		_ = agentauth.StoreAPIKey(id, cfg.APIKey)
+		a.agentMu.Lock()
+		a.agentAPIKey = cfg.APIKey
+		a.agentAPIKeyAt = time.Now()
+		a.agentMu.Unlock()
+	}
+
+	_ = writeDefaultAgent(string(id))
+	return nil
+}
+
 // AgentSignInApiKey caches an API key (in memory + the OS keychain) to inject as ANTHROPIC_API_KEY at the next AgentStart; persisting it keeps an API-key sign-in alive across restarts.
 func (a *App) AgentSignInApiKey(agentID, apiKey string) error {
 	id, err := airuntime.ParseAgent(agentID)
@@ -571,6 +615,22 @@ func (a *App) AgentSignInApiKey(agentID, apiKey string) error {
 	if key == "" {
 		return errors.New("API key is empty")
 	}
+
+	if id == airuntime.AgentMiniMax || id == airuntime.AgentOpenAI || id == airuntime.AgentOpenCode {
+		cfg := readOpenAIConfig(string(id))
+		cfg.APIKey = key
+		if err := writeOpenAIConfig(string(id), cfg); err != nil {
+			return err
+		}
+		a.agentMu.Lock()
+		a.agentAPIKey = key
+		a.agentAPIKeyAt = time.Now()
+		a.agentMu.Unlock()
+		_ = agentauth.StoreAPIKey(id, key)
+		_ = writeDefaultAgent(string(id))
+		return nil
+	}
+
 	// Verify BEFORE keeping or persisting anything: this used to accept any non-empty string, so a mistyped key was
 	// stored in the keychain and reported as "Connected", and the failure only surfaced later on the first chat turn.
 	if err := agentauth.VerifyAPIKey(a.ctx(), id, key); err != nil {
@@ -594,6 +654,12 @@ func (a *App) AgentSignInApiKey(agentID, apiKey string) error {
 
 // AgentAuthStatus reports whether the agent can skip the connect screen (a persisted subscription login or an API key set this session), plus the details shown in the settings "Agent" section.
 func (a *App) AgentAuthStatus(agentID string) (agent.AuthStatus, error) {
+	if agentID == "" {
+		agentID = readDefaultAgent()
+		if agentID == "" {
+			agentID = string(airuntime.AgentMiniMax)
+		}
+	}
 	id, err := airuntime.ParseAgent(agentID)
 	if err != nil {
 		return agent.AuthStatus{}, err
@@ -602,6 +668,33 @@ func (a *App) AgentAuthStatus(agentID string) (agent.AuthStatus, error) {
 	apiKey := a.agentAPIKey
 	apiKeyAt := a.agentAPIKeyAt
 	a.agentMu.Unlock()
+
+	if id == airuntime.AgentMiniMax || id == airuntime.AgentOpenAI || id == airuntime.AgentOpenCode {
+		cfg := readOpenAIConfig(string(id))
+		if apiKey == "" {
+			apiKey = cfg.APIKey
+			if apiKey == "" {
+				if stored, rerr := agentauth.ReadAPIKey(id); rerr == nil {
+					apiKey = stored
+				}
+			}
+		}
+
+		if apiKey != "" || strings.Contains(cfg.BaseURL, "localhost") || strings.Contains(cfg.BaseURL, "127.0.0.1") {
+			status := agent.AuthStatus{
+				Authenticated: true,
+				AgentID:       string(id),
+				IsDefault:     isDefaultAgent(id),
+				Method:        "api_key",
+				Account:       fmt.Sprintf("%s @ %s", cfg.Model, cfg.BaseURL),
+			}
+			if !apiKeyAt.IsZero() {
+				status.ConnectedAt = apiKeyAt.UTC().Format(time.RFC3339)
+			}
+			return status, nil
+		}
+		return agent.AuthStatus{Authenticated: false, AgentID: string(id), IsDefault: isDefaultAgent(id)}, nil
+	}
 
 	// After a restart the in-memory key is gone; read the persisted one so an API-key user still skips the connect screen (ConnectedAt is unknown then, so it's omitted).
 	if apiKey == "" {
@@ -680,6 +773,11 @@ func (a *App) AgentDisconnect(agentID string) error {
 	a.agentAPIKey = ""
 	a.agentAPIKeyAt = time.Time{}
 	a.agentMu.Unlock()
+	if id == airuntime.AgentMiniMax || id == airuntime.AgentOpenAI || id == airuntime.AgentOpenCode {
+		cfg := readOpenAIConfig(string(id))
+		cfg.APIKey = ""
+		_ = writeOpenAIConfig(string(id), cfg)
+	}
 	// Drop the persisted key too, else the next restart would sign back in with it. Without a
 	// keychain nothing was persisted, so a delete failure must not block the sign-out.
 	if err := agentauth.DeleteAPIKey(id); err != nil {

@@ -213,7 +213,7 @@ export const onLoginUrl: CodingAgentService['onLoginUrl'] = (handler) =>
 export const getAuthStatus: CodingAgentService['getAuthStatus'] =
   async (): Promise<AuthStatus> => {
     try {
-      const status = await AgentAuthStatus('claude');
+      const status = await AgentAuthStatus('');
       return status.authenticated
         ? {
             authenticated: true,

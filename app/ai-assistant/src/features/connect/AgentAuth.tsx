@@ -35,6 +35,10 @@ type AgentAuthProps = {
   apiKey: string;
   onApiKeyChange: (value: string) => void;
   apiKeyError: boolean;
+  baseUrl?: string;
+  onBaseUrlChange?: (value: string) => void;
+  model?: string;
+  onModelChange?: (value: string) => void;
   verifying: boolean;
   onVerify: () => Promise<void>;
 };
@@ -58,6 +62,10 @@ export const AgentAuth: React.FC<AgentAuthProps> = ({
   apiKey,
   onApiKeyChange,
   apiKeyError,
+  baseUrl,
+  onBaseUrlChange,
+  model,
+  onModelChange,
   verifying,
   onVerify,
 }) => {
@@ -211,6 +219,110 @@ export const AgentAuth: React.FC<AgentAuthProps> = ({
     );
   }
 
+  // OpenAI-compatible form: API Base URL + Model Name + API Key
+  const isOpenAI =
+    agent.id === 'minimax' ||
+    agent.id === 'openai' ||
+    agent.id === 'opencode';
+
+  if (isOpenAI) {
+    return (
+      <div className={styles['apikey']} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <Input
+            inputStyle={InputStyle.AppLab}
+            value={baseUrl ?? ''}
+            onChange={onBaseUrlChange ?? (() => {})}
+            placeholder={
+              agent.id === 'minimax'
+                ? 'https://api.minimax.chat/v1'
+                : 'https://api.openai.com/v1'
+            }
+            label="API Base URL (接口地址)"
+            className={styles['apikey-input']}
+            classes={{
+              input: styles['apikey-input-root'],
+              inputContainer: styles['apikey-input-container'],
+              inputLabel: styles['apikey-input-label'],
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <Input
+            inputStyle={InputStyle.AppLab}
+            value={model ?? ''}
+            onChange={onModelChange ?? (() => {})}
+            placeholder={
+              agent.id === 'minimax'
+                ? 'minimax-m3'
+                : 'gpt-4o'
+            }
+            label="模型名称 (Model Name)"
+            className={styles['apikey-input']}
+            classes={{
+              input: styles['apikey-input-root'],
+              inputContainer: styles['apikey-input-container'],
+              inputLabel: styles['apikey-input-label'],
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <Input
+            inputStyle={InputStyle.AppLab}
+            type="password"
+            value={apiKey}
+            onChange={onApiKeyChange}
+            onEnter={onVerify}
+            placeholder={
+              agent.id === 'minimax'
+                ? 'MiniMax API Key / 密钥'
+                : 'sk-… / API Key'
+            }
+            label={formatMessage(messages.apiKeyLabel, {
+              provider: agent.provider,
+            })}
+            className={styles['apikey-input']}
+            classes={{
+              input: styles['apikey-input-root'],
+              inputContainer: styles['apikey-input-container'],
+              inputLabel: styles['apikey-input-label'],
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '6px' }}>
+          <Button
+            variant={ButtonVariant.Primary}
+            loading={verifying}
+            disabled={verifying}
+            onClick={onVerify}
+            className={styles['verify-btn']}
+          >
+            {formatMessage(verifying ? messages.verifying : messages.verify)}
+          </Button>
+        </div>
+
+        {agent.apiKeyUrl ? (
+          <a
+            className={styles['where']}
+            href={agent.apiKeyUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e): void => {
+              if (agent.apiKeyUrl && openInSystemBrowser(agent.apiKeyUrl)) {
+                e.preventDefault();
+              }
+            }}
+          >
+            {formatMessage(messages.whereApiKey, { provider: agent.provider })}
+          </a>
+        ) : null}
+      </div>
+    );
+  }
+
   // API-key tab: paste-and-verify form with inline format error and a hint on
   // where to find the key.
   return (
@@ -275,3 +387,4 @@ export const AgentAuth: React.FC<AgentAuthProps> = ({
 };
 
 export default AgentAuth;
+
