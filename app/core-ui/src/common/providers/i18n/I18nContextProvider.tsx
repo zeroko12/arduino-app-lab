@@ -10,16 +10,15 @@ interface I18nProviderProps {
 }
 
 const STORAGE_KEY = 'app_lab_language';
-const DEFAULT_LOCALE = Locales.ENGLISH;
+const DEFAULT_LOCALE = Locales.CHINESE;
 
 function getInitialLocale(): LocaleType {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && (saved === Locales.ENGLISH || saved === Locales.CHINESE)) {
-      return saved as LocaleType;
+    if (saved === Locales.ENGLISH) {
+      return Locales.ENGLISH;
     }
-    const nav = (typeof navigator !== 'undefined' && navigator.language ? navigator.language : '').toLowerCase();
-    if (nav.startsWith('zh')) {
+    if (saved === Locales.CHINESE) {
       return Locales.CHINESE;
     }
   } catch {

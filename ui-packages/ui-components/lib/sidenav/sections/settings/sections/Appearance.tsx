@@ -145,12 +145,14 @@ const Appearance: React.FC = () => {
               defaultValue={
                 (typeof localStorage !== 'undefined' &&
                   localStorage.getItem('app_lab_language')) ||
-                'en-us'
+                (getPreference(Preferences.Language) as string) ||
+                'zh-cn'
               }
               value={
                 (typeof localStorage !== 'undefined' &&
                   localStorage.getItem('app_lab_language')) ||
-                'en-us'
+                (getPreference(Preferences.Language) as string) ||
+                'zh-cn'
               }
             >
               <Radio

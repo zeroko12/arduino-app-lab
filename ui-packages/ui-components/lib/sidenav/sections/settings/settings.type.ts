@@ -51,7 +51,7 @@ export const defaultPreferences = {
   [Preferences.Theme]: Themes.LightTheme,
   [Preferences.AutoTheme]: false,
   [Preferences.FontSize]: DEFAULT_FONT_SIZE,
-  [Preferences.Language]: 'en-us',
+  [Preferences.Language]: 'zh-cn',
   [Preferences.AutoSave]: true,
   [Preferences.SaveOnVerifyingUploading]: false,
   [Preferences.BoardAutoSelection]: true,
