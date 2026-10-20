@@ -136,7 +136,7 @@ const Appearance: React.FC = () => {
               onChange={(lang: string): void => {
                 setPreference(Preferences.Language, lang);
                 try {
-                  localStorage.setItem('app_lab_language', lang);
+                  localStorage.setItem('app_lab_language_v2', lang);
                   window.location.reload();
                 } catch {
                   // ignore
@@ -144,13 +144,13 @@ const Appearance: React.FC = () => {
               }}
               defaultValue={
                 (typeof localStorage !== 'undefined' &&
-                  localStorage.getItem('app_lab_language')) ||
+                  localStorage.getItem('app_lab_language_v2')) ||
                 (getPreference(Preferences.Language) as string) ||
                 'zh-cn'
               }
               value={
                 (typeof localStorage !== 'undefined' &&
-                  localStorage.getItem('app_lab_language')) ||
+                  localStorage.getItem('app_lab_language_v2')) ||
                 (getPreference(Preferences.Language) as string) ||
                 'zh-cn'
               }

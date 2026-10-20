@@ -9,11 +9,12 @@ interface I18nProviderProps {
   children?: React.ReactNode;
 }
 
-const STORAGE_KEY = 'app_lab_language';
+const STORAGE_KEY = 'app_lab_language_v2';
 const DEFAULT_LOCALE = Locales.CHINESE;
 
 function getInitialLocale(): LocaleType {
   try {
+    localStorage.removeItem('app_lab_language');
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === Locales.ENGLISH) {
       return Locales.ENGLISH;

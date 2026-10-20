@@ -3,50 +3,50 @@ import { defineMessages } from 'react-intl';
 export const messages = defineMessages({
   title: {
     id: 'app-lab.app-welcome-dialog.title',
-    defaultMessage: 'Welcome to Arduino App Lab',
+    defaultMessage: '欢迎使用 Arduino App Lab',
     description: 'Title shown on the app welcome dialog',
   },
   contentTitle: {
     id: 'app-lab.app-welcome-dialog.content-title',
-    defaultMessage: "Ready to Build? Explore App Lab's Core Concepts",
+    defaultMessage: '准备好开发了吗？了解 App Lab 核心理念',
     description: 'Main content title in the welcome dialog',
   },
   confirmButton: {
     id: 'app-lab.app-welcome-dialog.confirm-button',
-    defaultMessage: 'Ok, got it',
+    defaultMessage: '知道了，开始使用',
     description: 'Text for the confirmation button',
   },
   appsTitle: {
     id: 'app-lab.app-welcome-dialog.features.apps.title',
-    defaultMessage: 'Apps',
+    defaultMessage: '应用 (Apps)',
     description: 'Feature title for Apps section',
   },
   appsDescription: {
     id: 'app-lab.app-welcome-dialog.features.apps.description',
     defaultMessage:
-      'Now you can build apps that seamlessly blend Python on Linux with C as a Sketch.',
+      '现在您可以轻松构建将 Linux 上的 Python 与嵌入式 C 代码 (Sketch) 完美融合的应用程序。',
     description: 'Feature description for Apps section',
   },
   bricksTitle: {
     id: 'app-lab.app-welcome-dialog.features.brick.title',
-    defaultMessage: 'Bricks',
+    defaultMessage: '积木 (Bricks)',
     description: 'Feature title for Bricks section',
   },
   bricksDescription: {
     id: 'app-lab.app-welcome-dialog.features.brick.description',
     defaultMessage:
-      'Ready-to-use components that handle everything from AI-powered computer vision, audio and data storage. Just add them into your project to unlock powerful functionalities.',
+      '开箱即用的功能积木，涵盖 AI 视觉、音频与数据存储。只需添加到项目中即可解锁强大功能。',
     description: 'Feature description for Bricks section',
   },
   examplesTitle: {
     id: 'app-lab.app-welcome-dialog.features.examples.title',
-    defaultMessage: 'Examples',
+    defaultMessage: '示例',
     description: 'Feature title for Examples section',
   },
   examplesDescription: {
     id: 'app-lab.app-welcome-dialog.features.examples.description',
     defaultMessage:
-      'The perfect starting point for beginners. Each example is a simple app that shows you how to combine Bricks to get powerful results with just a few lines of code.',
+      '新手的绝佳起点。每个示例都是一个精炼的应用，演示如何通过几行代码组合各类积木实现强大功能。',
     description: 'Feature description for Examples section',
   },
 });
