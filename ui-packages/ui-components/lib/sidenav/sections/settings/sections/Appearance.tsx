@@ -126,8 +126,58 @@ const Appearance: React.FC = () => {
           }}
         />
       </div>
+      <div className={styles['setting']}>
+        <XSmall bold>{formatMessage(messages.languageSection)}</XSmall>
+        <div className={styles['setting__theme']}>
+          <div className={styles['setting__theme-buttons']}>
+            <RadioGroup
+              label={formatMessage(messages.languageSection)}
+              classes={{ container: styles['setting__theme-radio-group'] }}
+              onChange={(lang: string): void => {
+                setPreference(Preferences.Language, lang);
+                try {
+                  localStorage.setItem('app_lab_language', lang);
+                  window.location.reload();
+                } catch {
+                  // ignore
+                }
+              }}
+              defaultValue={
+                (typeof localStorage !== 'undefined' &&
+                  localStorage.getItem('app_lab_language')) ||
+                'en-us'
+              }
+              value={
+                (typeof localStorage !== 'undefined' &&
+                  localStorage.getItem('app_lab_language')) ||
+                'en-us'
+              }
+            >
+              <Radio
+                value="en-us"
+                classes={{
+                  container: styles['setting__theme-radio-container'],
+                  input: styles['setting__theme-radio-input'],
+                }}
+              >
+                <XSmall>{formatMessage(messages.languageEnglish)}</XSmall>
+              </Radio>
+              <Radio
+                value="zh-cn"
+                classes={{
+                  container: styles['setting__theme-radio-container'],
+                  input: styles['setting__theme-radio-input'],
+                }}
+              >
+                <XSmall>{formatMessage(messages.languageChinese)}</XSmall>
+              </Radio>
+            </RadioGroup>
+          </div>
+        </div>
+      </div>
     </>
   );
 };
 
 export default Appearance;
+

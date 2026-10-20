@@ -51,6 +51,23 @@ import {
 // OpenCode are surfaced as disabled "coming soon" cards until their auth flows land.
 const AGENTS: AgentDescriptor[] = [
   {
+    id: 'minimax',
+    name: 'MiniMax-M3',
+    description: 'MiniMax-M3 (OpenAI-compatible) · 强大的多语言与硬件代码生成模型',
+    provider: 'MiniMax',
+    apiKeyPrefix: '',
+    apiKeyUrl: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
+    preview: true,
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI / Custom',
+    description: 'OpenAI 兼容接口 · 支持接入任何兼容 OpenAI 协议的模型 API',
+    provider: 'OpenAI',
+    apiKeyPrefix: '',
+    preview: true,
+  },
+  {
     id: 'claude',
     name: 'Claude Code',
     description: 'Use your Claude Pro/Max account or an Anthropic API key',

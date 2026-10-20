@@ -89,7 +89,9 @@ func NewManager(agent *Agent, factory ConnFactory, cfg ManagerConfig) *Manager {
 		mctx:        mctx,
 		cancel:      cancel,
 	}
-	agent.cfg.OnExit = m.onExit // the Manager owns crash handling (auto-restart)
+	if agent != nil {
+		agent.cfg.OnExit = m.onExit // the Manager owns crash handling (auto-restart)
+	}
 	return m
 }
 
@@ -121,20 +123,33 @@ func (m *Manager) Start(ctx context.Context) error {
 
 // launch brings the agent up once (spawn → connect → initialize); initCtx bounds only the handshake.
 func (m *Manager) launch(initCtx context.Context) error {
-	stdin, stdout, err := m.agent.Start(m.mctx)
-	if err != nil {
-		return err
-	}
-	conn, err := m.connFactory(stdin, stdout, m)
-	if err != nil {
-		_ = m.agent.Stop()
-		return err
+	var conn AgentConn
+	var err error
+	if m.agent != nil {
+		stdin, stdout, serr := m.agent.Start(m.mctx)
+		if serr != nil {
+			return serr
+		}
+		conn, err = m.connFactory(stdin, stdout, m)
+		if err != nil {
+			_ = m.agent.Stop()
+			return err
+		}
+	} else if m.connFactory != nil {
+		conn, err = m.connFactory(nil, nil, m)
+		if err != nil {
+			return err
+		}
+	} else {
+		return errors.New("no agent or conn factory configured")
 	}
 	conn.SetMCPServers(m.cfg.MCPServers) // advertise board tools on every session (survives restart)
 	conn.SetBoardName(m.cfg.BoardName)
 	methods, err := conn.Initialize(initCtx)
 	if err != nil {
-		_ = m.agent.Stop()
+		if m.agent != nil {
+			_ = m.agent.Stop()
+		}
 		return err
 	}
 	m.mu.Lock()
@@ -519,8 +534,11 @@ func (m *Manager) Stop() error {
 	if conn != nil {
 		_ = conn.Close()
 	}
-	err := m.agent.Stop() // graceful where possible; blocks until the tree is gone
-	m.cancel()            // stop the restart loop and hard-kill any racing respawn
+	var err error
+	if m.agent != nil {
+		err = m.agent.Stop() // graceful where possible; blocks until the tree is gone
+	}
+	m.cancel() // stop the restart loop and hard-kill any racing respawn
 	return err
 }
 

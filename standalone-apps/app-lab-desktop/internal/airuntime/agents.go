@@ -7,11 +7,19 @@ import "fmt"
 // AgentID identifies a runtime install (e.g. "claude").
 type AgentID string
 
-const AgentClaude AgentID = "claude"
+const (
+	AgentClaude   AgentID = "claude"
+	AgentMiniMax  AgentID = "minimax"
+	AgentOpenAI   AgentID = "openai"
+	AgentOpenCode AgentID = "opencode"
+)
 
 // supportedAgents is the allowlist of installable agents; set an entry false to disable it.
 var supportedAgents = map[AgentID]bool{
-	AgentClaude: true,
+	AgentClaude:   true,
+	AgentMiniMax:  true,
+	AgentOpenAI:   true,
+	AgentOpenCode: true,
 }
 
 // isSupported reports whether agent is a known, enabled runtime target.

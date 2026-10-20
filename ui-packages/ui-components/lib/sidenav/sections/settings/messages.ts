@@ -61,6 +61,21 @@ export const messages = defineMessages({
     defaultMessage: 'Font size',
     description: 'Label for the font size section',
   },
+  languageSection: {
+    id: 'settings.appearance.languageSection',
+    defaultMessage: 'Language',
+    description: 'Label for the language section',
+  },
+  languageEnglish: {
+    id: 'settings.appearance.language.english',
+    defaultMessage: 'English',
+    description: 'Label for English language option',
+  },
+  languageChinese: {
+    id: 'settings.appearance.language.chinese',
+    defaultMessage: '简体中文 (Chinese)',
+    description: 'Label for Chinese language option',
+  },
   savingSection: {
     id: 'settings.sketch.savingSection',
     defaultMessage: 'Saving',

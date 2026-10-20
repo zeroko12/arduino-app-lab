@@ -1,6 +1,6 @@
 import { Unsubscribe } from '../common';
 
-export type AgentId = 'claude' | 'codex' | 'opencode';
+export type AgentId = 'claude' | 'codex' | 'opencode' | 'minimax' | 'openai';
 
 export interface AgentDescriptor {
   id: AgentId;

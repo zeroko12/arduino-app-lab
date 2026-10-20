@@ -30,9 +30,37 @@ func profileFor(agent airuntime.AgentID) (authProfile, error) {
 	switch agent {
 	case airuntime.AgentClaude:
 		return claudeProfile, nil
+	case airuntime.AgentMiniMax:
+		return miniMaxProfile, nil
+	case airuntime.AgentOpenAI, airuntime.AgentOpenCode:
+		return openAIProfile, nil
 	default:
 		return authProfile{}, fmt.Errorf("agentauth: no auth profile for agent %q", agent)
 	}
+}
+
+var miniMaxProfile = authProfile{
+	configDirEnv: "MINIMAX_CONFIG_DIR",
+	apiKeyEnv:    "MINIMAX_API_KEY",
+	scrubKeys: []string{
+		"MINIMAX_API_KEY", "OPENAI_API_KEY",
+	},
+	cliBin: "minimax",
+	logoutArgs: []string{"logout"},
+	credentialFiles: []string{".credentials.json"},
+	apiKeyVerifyURL: "",
+}
+
+var openAIProfile = authProfile{
+	configDirEnv: "OPENAI_CONFIG_DIR",
+	apiKeyEnv:    "OPENAI_API_KEY",
+	scrubKeys: []string{
+		"OPENAI_API_KEY", "MINIMAX_API_KEY",
+	},
+	cliBin: "openai",
+	logoutArgs: []string{"logout"},
+	credentialFiles: []string{".credentials.json"},
+	apiKeyVerifyURL: "",
 }
 
 // claudeProfile: subscription OAuth runs through the claude CLI's own login flow; the CLI

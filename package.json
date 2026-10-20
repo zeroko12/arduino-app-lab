@@ -195,6 +195,6 @@
     "build-copyright:arduino-app-lab-desktop": "yarn workspace @bcmi-labs/al-license licensed",
     "fetch-learn:arduino-app-lab-desktop": "yarn workspace @bcmi-labs/al-learn-contents fetch"
   },
-  "packageManager": "yarn@3.5.0",
+  "packageManager": "yarn@3.8.7",
   "license": "GPL-3.0"
 }

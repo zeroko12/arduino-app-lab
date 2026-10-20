@@ -1,0 +1,161 @@
+name: Build and Release Multi-Platform Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release Tag (e.g. v0.10.1)'
+        required: false
+        default: 'v0.10.1'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform_name }} (${{ matrix.target_arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows x64
+          - os: windows-latest
+            platform_name: Windows
+            target_arch: windows_amd64
+            wails_platform: windows/amd64
+            artifact_pattern: standalone-apps/app-lab-desktop/build/bin/ArduinoAppLab.exe
+            release_asset: ArduinoAppLab-Windows-x64.exe
+
+          # macOS Apple Silicon
+          - os: macos-14
+            platform_name: macOS
+            target_arch: darwin_arm64
+            wails_platform: darwin/arm64
+            artifact_pattern: standalone-apps/app-lab-desktop/build/bin/*.dmg
+            release_asset: ArduinoAppLab-macOS-arm64.dmg
+
+          # macOS Intel
+          - os: macos-13
+            platform_name: macOS
+            target_arch: darwin_amd64
+            wails_platform: darwin/amd64
+            artifact_pattern: standalone-apps/app-lab-desktop/build/bin/*.dmg
+            release_asset: ArduinoAppLab-macOS-x64.dmg
+
+          # Linux x64
+          - os: ubuntu-22.04
+            platform_name: Linux
+            target_arch: linux_amd64
+            wails_platform: linux/amd64
+            artifact_pattern: standalone-apps/app-lab-desktop/build/bin/ArduinoAppLab
+            release_asset: ArduinoAppLab-Linux-x64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev build-essential pkg-config wget jq
+
+      - name: Install macOS build dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew install wget jq
+
+      - name: Install Windows build tools
+        if: runner.os == 'Windows'
+        run: |
+          choco install wget jq nsis -y
+
+      - name: Set up Yarn & Environment
+        shell: bash
+        run: |
+          touch .env
+          corepack enable
+          yarn set version 3.8.7
+          yarn install
+
+      - name: Download Board Bundled Resources
+        shell: bash
+        run: |
+          bash standalone-apps/app-lab-desktop/internal/board/download_resources.sh ${{ matrix.target_arch }}
+
+      - name: Install Wails CLI
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.9.2
+
+      - name: Build Frontend
+        run: |
+          yarn workspace @bcmi-labs/app-lab-desktop build
+
+      - name: Build Wails App (Linux)
+        if: runner.os == 'Linux'
+        working-directory: standalone-apps/app-lab-desktop
+        run: |
+          wails build -platform ${{ matrix.wails_platform }} -tags webkit2_41
+
+      - name: Build Wails App (macOS & Windows)
+        if: runner.os != 'Linux'
+        working-directory: standalone-apps/app-lab-desktop
+        run: |
+          wails build -platform ${{ matrix.wails_platform }}
+
+      - name: Package Output Artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp standalone-apps/app-lab-desktop/build/bin/ArduinoAppLab.exe dist/ArduinoAppLab-Windows-x64.exe
+          cd dist && zip ArduinoAppLab-Windows-x64.zip ArduinoAppLab-Windows-x64.exe
+
+      - name: Package Output Artifact (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp standalone-apps/app-lab-desktop/build/bin/ArduinoAppLab dist/ArduinoAppLab-Linux-x64
+          cd dist && tar -czvf ArduinoAppLab-Linux-x64.tar.gz ArduinoAppLab-Linux-x64
+
+      - name: Package Output Artifact (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp standalone-apps/app-lab-desktop/build/bin/*.dmg dist/ || true
+          cp -r standalone-apps/app-lab-desktop/build/bin/*.app dist/ || true
+          cd dist && zip -r ArduinoAppLab-${{ matrix.platform_name }}-${{ matrix.target_arch }}.zip ./*
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform_name }}-${{ matrix.target_arch }}
+          path: dist/*
+
+      - name: Release to GitHub
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

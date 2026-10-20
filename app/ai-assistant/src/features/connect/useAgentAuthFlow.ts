@@ -61,7 +61,16 @@ export const useAgentAuthFlow = ({
   onAuthenticated,
   onError,
 }: UseAgentAuthFlowOptions): AgentAuthFlowState => {
-  const [authTab, setAuthTab] = useState<AuthTab>('signin');
+  const [authTab, setAuthTab] = useState<AuthTab>(() => {
+    if (
+      agent?.id === 'minimax' ||
+      agent?.id === 'openai' ||
+      agent?.id === 'opencode'
+    ) {
+      return 'apikey';
+    }
+    return 'signin';
+  });
   const [apiKey, setApiKeyValue] = useState('');
   const [apiKeyError, setApiKeyError] = useState(false);
   const [signingIn, setSigningIn] = useState(false);

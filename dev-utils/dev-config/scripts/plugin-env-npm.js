@@ -6,15 +6,19 @@ module.exports = {
         let token = process.env.NPM_TOKEN;
 
         if (!token) {
-          const fs = require('fs/promises');
-          const envContent = await fs.readFile('.env', 'utf8');
+          try {
+            const fs = require('fs/promises');
+            const envContent = await fs.readFile('.env', 'utf8');
 
-          const rows = envContent.split(/\r?\n/);
-          for (const row of rows) {
-            const [key, value] = row.split('=', 2);
-            if (key.trim() === 'NPM_TOKEN') {
-              token = value.trim();
+            const rows = envContent.split(/\r?\n/);
+            for (const row of rows) {
+              const [key, value] = row.split('=', 2);
+              if (key && key.trim() === 'NPM_TOKEN') {
+                token = value.trim();
+              }
             }
+          } catch {
+            // .env is optional
           }
         }
 

@@ -83,7 +83,17 @@ func (a *App) runtimeFor(agentID string) (*airuntime.Manager, error) {
 }
 
 func (a *App) RuntimeStatus(agentID string) (airuntime.Status, error) {
-	m, err := a.runtimeFor(agentID)
+	id, err := airuntime.ParseAgent(agentID)
+	if err != nil {
+		return airuntime.Status{}, err
+	}
+	if id == airuntime.AgentMiniMax || id == airuntime.AgentOpenAI || id == airuntime.AgentOpenCode {
+		return airuntime.Status{
+			Installed: true,
+			Version:   "1.0.0",
+		}, nil
+	}
+	m, err := a.runtime(id)
 	if err != nil {
 		return airuntime.Status{}, err
 	}
@@ -92,7 +102,14 @@ func (a *App) RuntimeStatus(agentID string) (airuntime.Status, error) {
 
 // RuntimeCheckUpdate reports whether a runtime update is available (installed manifest vs the versions this app build pins).
 func (a *App) RuntimeCheckUpdate(agentID string) (airuntime.UpdateCheck, error) {
-	m, err := a.runtimeFor(agentID)
+	id, err := airuntime.ParseAgent(agentID)
+	if err != nil {
+		return airuntime.UpdateCheck{}, err
+	}
+	if id == airuntime.AgentMiniMax || id == airuntime.AgentOpenAI || id == airuntime.AgentOpenCode {
+		return airuntime.UpdateCheck{}, nil
+	}
+	m, err := a.runtime(id)
 	if err != nil {
 		return airuntime.UpdateCheck{}, err
 	}
@@ -101,7 +118,14 @@ func (a *App) RuntimeCheckUpdate(agentID string) (airuntime.UpdateCheck, error) 
 
 // RuntimeInstall stops the agent first, as RuntimeUninstall does: installing re-extracts <runtime>/node, the binary a running agent executes. The flag spans the install rather than agentMu, which would block every other agent binding for minutes.
 func (a *App) RuntimeInstall(agentID string) error {
-	m, err := a.runtimeFor(agentID)
+	id, err := airuntime.ParseAgent(agentID)
+	if err != nil {
+		return err
+	}
+	if id == airuntime.AgentMiniMax || id == airuntime.AgentOpenAI || id == airuntime.AgentOpenCode {
+		return nil
+	}
+	m, err := a.runtime(id)
 	if err != nil {
 		return err
 	}
@@ -149,6 +173,9 @@ func (a *App) RuntimeUninstall(agentID string) error {
 	if err := agentauth.SignOut(a.ctx(), id); err != nil {
 		slog.Warn("agent credential not fully cleared before uninstall", "agent", id, "err", err)
 	}
+	if id == airuntime.AgentMiniMax || id == airuntime.AgentOpenAI || id == airuntime.AgentOpenCode {
+		return nil
+	}
 	m, err := a.runtime(id)
 	if err != nil {
 		return err
@@ -192,6 +219,44 @@ func (a *App) AgentStart(agentID string) error {
 			return fmt.Errorf("agent %q is already running; stop it before starting %q", a.agentMgrID, id)
 		}
 		return nil // idempotent: the UI calls this on every open
+	}
+
+	// Native in-process connector for MiniMax and OpenAI-compatible models
+	if id == airuntime.AgentMiniMax || id == airuntime.AgentOpenAI || id == airuntime.AgentOpenCode {
+		key := a.agentAPIKey
+		if key == "" {
+			if stored, rerr := agentauth.ReadAPIKey(id); rerr == nil {
+				key = stored
+			}
+		}
+
+		baseURL := os.Getenv("MINIMAX_BASE_URL")
+		model := os.Getenv("MINIMAX_MODEL")
+		if id == airuntime.AgentOpenAI || id == airuntime.AgentOpenCode {
+			if ob := os.Getenv("OPENAI_BASE_URL"); ob != "" {
+				baseURL = ob
+			}
+			if om := os.Getenv("OPENAI_MODEL"); om != "" {
+				model = om
+			}
+		}
+
+		openAICfg := agent.OpenAIConfig{
+			BaseURL: baseURL,
+			APIKey:  key,
+			Model:   model,
+			AgentID: string(id),
+		}
+
+		mgr := a.newOpenAIManager(id, openAICfg)
+		ctx, cancel := context.WithTimeout(a.ctx(), agentStartTimeout)
+		defer cancel()
+		if err := mgr.Start(ctx); err != nil {
+			return err
+		}
+		a.agentMgr = mgr
+		a.agentMgrID = id
+		return nil
 	}
 
 	m, err := a.runtime(id)
@@ -241,6 +306,32 @@ func (a *App) AgentStart(agentID string) error {
 	a.agentMgr = mgr
 	a.agentMgrID = id
 	return nil
+}
+
+func (a *App) newOpenAIManager(id airuntime.AgentID, cfg agent.OpenAIConfig) *agent.Manager {
+	factory := func(_ io.Writer, _ io.Reader, handler agent.ClientHandler) (agent.AgentConn, error) {
+		return agent.NewOpenAIConn(cfg, handler), nil
+	}
+	var mgr *agent.Manager
+	mgr = agent.NewManager(
+		nil,
+		factory,
+		agent.ManagerConfig{
+			OnUpdate: func(sid agent.SessionID, u agent.Update) { a.emit("acp:update", sid, u) },
+			OnPermission: func(req agent.PermissionRequest) {
+				a.enrichPermissionAppName(req)
+				a.emit("acp:permission", req)
+			},
+			OnRestart: func(info agent.RestartInfo) {
+				if info.GaveUp {
+					a.clearAgent(mgr)
+				}
+				a.emit("acp:restart", info)
+			},
+			BoardName: a.selectedBoardName(),
+		},
+	)
+	return mgr
 }
 
 // newAgentManager builds the ACP manager for id and forwards its events to the webview.
